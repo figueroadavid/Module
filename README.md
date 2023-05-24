@@ -1265,4 +1265,4 @@ VERBOSE: Triggering update for transformserver04.hchd.local
 
 <a name="bugs"></a>
 
-1. `Send-OMTestPage` always reports failure, even when successful
+1. ~~~`Send-OMTestPage` always reports failure, even when successful~~~; Corrected
