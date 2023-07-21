@@ -37,16 +37,16 @@ function Get-OMDisabledDestination {
         [string]$Output,
 
         [parameter(ValueFromPipelineByPropertyName)]
-        [string]$SMTPFrom = ('DisabledMonitor_{0}@harrishealth.org' -f $env:COMPUTERNAME),
+        [string]$SMTPFrom = ('DisabledMonitor_{0}@domain.tld' -f $env:COMPUTERNAME),
 
         [parameter(ValueFromPipelineByPropertyName)]
-        [string[]]$SMTPTo = @('david.figueroa@harrishealth.org'),
+        [string[]]$SMTPTo = @('some.email@domain.tld'),
 
         [parameter(ValueFromPipelineByPropertyName)]
         [string]$SMTPSubject = ('Disabled print queues on {0}' -f $env:COMPUTERNAME),
 
         [parameter(ValueFromPipelineByPropertyName)]
-        [string]$SMTPServer = 'hhexch01.hchd.local',
+        [string]$SMTPServer = 'mailserver.domain.tld',
 
         [parameter(ValueFromPipelineByPropertyName)]
         [string]$SMTPPort = 25,
