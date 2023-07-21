@@ -17,47 +17,52 @@ Here are the base functions provided
 <table>
     <tr>
          <th><a href="#Connect-OMPrinterURL">Connect-OMPrinterURL</a></th>
+         <th><a href="#Disable-OMPrimaryMPS">Disable-OMPrimaryMPS</a></th>
          <th><a href="#Disable-OMPrinter">Disable-OMPrinter</a></th>
+    </tr>
+    <tr>
+         <th><a href="#Disable-OMTransformServer">Disable-OMTransformServer</a></th>
+         <th><a href="#Enable-OMPrimaryMPS">Enable-OMPrimaryMPS</a></th>
          <th><a href="#Enable-OMPrinter">Enable-OMPrinter</a></th>
     </tr>
     <tr>
+         <th><a href="#Enable-OMTransformServer">Enable-OMTransformServer</a></th>
          <th><a href="#Get-OMCaseSensitivePrinterName">Get-OMCaseSensitivePrinterName</a></th>
          <th><a href="#Get-OMDisabledDestination">Get-OMDisabledDestination</a></th>
-         <th><a href="#Get-OMDriverNames">Get-OMDriverNames</a></th>
     </tr>
     <tr>
+         <th><a href="#Get-OMDriverNames">Get-OMDriverNames</a></th>
          <th><a href="#Get-OMEPR">Get-OMEPR</a></th>
          <th><a href="#Get-OMEPSMap">Get-OMEPSMap</a></th>
-         <th><a href="#Get-OMJobCountByStatus">Get-OMJobCountByStatus</a></th>
     </tr>
     <tr>
+         <th><a href="#Get-OMJobCountByStatus">Get-OMJobCountByStatus</a></th>
          <th><a href="#Get-OMPrinterConfiguration">Get-OMPrinterConfiguration</a></th>
          <th><a href="#Get-OMPrinterList">Get-OMPrinterList</a></th>
-         <th><a href="#Get-OMTypeTable">Get-OMTypeTable</a></th>
     </tr>
     <tr>
+         <th><a href="#Get-OMTypeTable">Get-OMTypeTable</a></th>
          <th><a href="#New-OMEPRMulti">New-OMEPRMulti</a></th>
          <th><a href="#New-OMEPR">New-OMEPR</a></th>
-         <th><a href="#New-OMEPSMapBackup">New-OMEPSMapBackup</a></th>
     </tr>
     <tr>
+         <th><a href="#New-OMEPSMapBackup">New-OMEPSMapBackup</a></th>
          <th><a href="#New-OMPrinter">New-OMPrinter</a></th>
          <th><a href="#Remove-OMDuplicateEPR">Remove-OMDuplicateEPR</a></th>
-         <th><a href="#Remove-OMEPR">Remove-OMEPR</a></th>
     </tr>
     <tr>
+         <th><a href="#Remove-OMEPR">Remove-OMEPR</a></th>
          <th><a href="#Remove-OMPrinter">Remove-OMPrinter</a></th>
          <th><a href="#Send-OMTestPage">Send-OMTestPage</a></th>
-         <th><a href="#Set-OMPrinterConfiguration">Set-OMPrinterConfiguration</a></th>
     </tr>
     <tr>
+         <th><a href="#Set-OMPrinterConfiguration">Set-OMPrinterConfiguration</a></th>
          <th><a href="#Set-OMPrinterRedirection">Set-OMPrinterRedirection</a></th>
          <th><a href="#Test-Port">Test-Port</a></th>
-         <th><a href="#Update-OMEPR">Update-OMEPR</a></th>
     </tr>
     <tr>
+         <th><a href="#Update-OMEPR">Update-OMEPR</a></th>
          <th><a href="#Update-OMTransformServer">Update-OMTransformServer</a></th>
-         <th/>
          <th/>
     </tr>
 </table>
@@ -80,6 +85,42 @@ Reads in the printer configuration, and if possible, launches the default browse
 
 ___
 
+### `Disable-OMPrimaryMPS`
+
+Disables the OMP Service (`ompSrv`) service on the primary __master print server__.  This prevents the server from receiving jobs from the transform servers and causes the print jobs to begin routing to the secondary MPS.
+
+| Parameter Name | Description |
+| -------------- | ----------- |
+| `N/A`          | `N/A`       |
+
+##### _Example_
+
+```ps
+PS C:\> Disable-OMPrimaryMPS -Verbose
+VERBOSE: Successfully disabled the ompSrv service
+```
+
+[Jump to Top :arrow_up:](#)
+___
+
+### `Disable-OMTransformServer`
+
+Disables the OM IPP Service (`OMIPPServ`) service on a __transform__ server.  This prevents the server from receiving jobs from Epic.
+
+| Parameter Name | Description |
+| -------------- | ----------- |
+| `N/A`          | `N/A`       |
+
+##### _Example_
+
+```ps
+PS C:\> Disable-OMTransformServer -Verbose
+VERBOSE: Successfully disabled the OMIPPServ service
+```
+
+[Jump to Top :arrow_up:](#)
+___
+
 ### `Disable-OMPrinter`
 
 Disables a printer in OMPlus
@@ -100,6 +141,23 @@ WARNING: Printer: Printer03 is not a valid printer for this system; skipping
 
 ___
 
+### `Enable-OMPrimaryMPS`
+
+Enables the OMP Service (`ompSrv`) service on the primary __master print server__.  This allows the server to receive jobs from the transform servers.
+
+| Parameter Name | Description |
+| -------------- | ----------- |
+| `N/A`          | `N/A`       |
+
+##### _Example_
+
+```ps
+PS C:\> Enable-OMPrimaryMPS
+```
+
+[Jump to Top :arrow_up:](#)
+___
+
 ### `Enable-OMPrinter`
 
 Enables a previously disabled printer in OMPlus.
@@ -117,7 +175,23 @@ WARNING: Printer: PRINTER03 is not a valid printer for this system; skipping
 ```
 
 [Jump to Top :arrow_up:](#)
+___
 
+### `Enable-OMTransformServer`
+
+Enables the OM IPP Service (`OMIPPServ`) service on a __transform__ server.  This allows the server to receive jobs from Epic.
+
+| Parameter Name | Description |
+| -------------- | ----------- |
+| `N/A`          | `N/A`       |
+
+##### _Example_
+
+```ps
+PS C:\> Enable-OMTransformServer
+```
+
+[Jump to Top :arrow_up:](#)
 ___
 
 ### `Get-OMDriverNames`
