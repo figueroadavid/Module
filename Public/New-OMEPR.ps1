@@ -202,9 +202,6 @@ Function New-OMEPR {
         [switch]$Append,
 
         [parameter(ValueFromPipelineByPropertyName)]
-        [switch]$Force,
-
-        [parameter(ValueFromPipelineByPropertyName)]
         [switch]$UpdateTransform,
 
         [parameter(ValueFromPipelineByPropertyName)]
@@ -223,8 +220,8 @@ Function New-OMEPR {
         $PrinterDir = Get-Item -Path ([system.io.path]::Combine($env:OMHOME, 'printers'))
         $OMQueue = $PrinterDir.EnumerateDirectories($Destination).name 
 
-        if (-not $OMQueue -and $PSBoundParameters.Contains('Force')) {
-            throw 'This destination (printer) does not exist, and -Force was not specified; not creating the EPR'
+        if (-not $OMQueue ) {
+            throw 'This destination (printer) does not exist; not creating the EPR'
         }
     }
 
@@ -249,7 +246,7 @@ Function New-OMEPR {
             $thisRecord.Add('DELETEME')
         }
         else {
-            $thisMatch = $TrayDictionary.Where{ $_.TrayName -match ('^{0}$' -f [RegEx]::Escape($TrayName)) }
+            $thisMatch = $TrayDictionary.Where{ $_.TrayName -match ('{0}' -f [RegEx]::Escape($TrayName)) }
             switch ($thisMatch.Count) {
                 0 {
                     $thisRecord.Add('DELETEME')
@@ -278,7 +275,7 @@ Function New-OMEPR {
             $thisRecord.Add('DELETEME')
         }
         else {
-            $thisMatch = $PaperSizeDictionary.Where{ $_.PaperSizeName -Match ('^{0}$' -f [RegEx]::Escape($PaperSize)) }
+            $thisMatch = $PaperSizeDictionary.Where{ $_.PaperSizeName -Match ('{0}' -f [RegEx]::Escape($PaperSize)) }
             switch ($thisMatch.Count) {
                 0 {
                     $thisRecord.Add('DELETEME')

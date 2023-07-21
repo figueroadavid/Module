@@ -1,4 +1,35 @@
 function Get-OMDisabledDestination {
+    <#
+    .SYNOPSIS
+        Gathers a list of the disabled printers and either displays them, or emails them
+    .DESCRIPTION
+        The script looks at the Enabled value of the printer's configurations and returns the ones marked as disabled.
+    .NOTES
+        It uses the Get-OMPrinterList and Get-OMPrinterConfiguration cmdlets to look at all the configurations. 
+        The configuration files are updated within seconds, so while it is a point-in-time snapshot, in most environments,
+        it should be very accurate and match the GUI.
+    .EXAMPLE
+        PS C:\> Get-OMDisabledDestinations -Output Display
+        PRINTER01
+        PRINTER04
+    .PARAMETER Output
+        Allows the user to select if the list of disabled printers is displayed on the screen or is emailed 
+        The allowable options are 'Display' or 'Email'
+    .PARAMETER SMTPFrom
+        The address that the email is sent from 
+    .PARAMETER SMTPTo
+        The address(es) that the mail is sent to.  If there are multiple email addresses, they must be supplied as an array 
+    .PARAMETER SMTPSubject
+        The subject line of the email 
+    .PARAMETER SMTPServer
+        The mail server for the email 
+    .PARAMETER SMTPPort
+        The SMTP Port used by the mail server 
+    .PARAMETER SendEmailEvenIfNoDisabledPrinters
+        Tells the system to send an email even if there are no disabled printers 
+    #>
+    
+    
     [cmdletbinding()]
     param(
         [parameter(ValueFromPipelineByPropertyName)]
@@ -30,7 +61,7 @@ function Get-OMDisabledDestination {
             Select-Object -ExpandProperty Printer
     }
 
-    if ($DisabledPrinters.Count -gt 0) {
+    if ($DisabledPrinters.Count -gt 0 -or $SendEmailEvenIfNoDisabledPrinters) {
         if ($Output -eq 'Email') {
             $SMTPSplat = @{
                 To          = $SMTPTo

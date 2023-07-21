@@ -420,6 +420,7 @@ Function Set-OMPrinterConfiguration {
                     FilePath        = $LPAdmin
                     ArgumentList    = $ArgString
                     Wait            = $true
+					NoNewWindow		= $true
                 }
                 Start-Process @ProcStart -Verb RunAs
             }

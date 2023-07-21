@@ -20,30 +20,30 @@ function Get-OMEPR {
         the same as it does in the java client interface.
 
     .EXAMPLE
-        PS C:\> Get-OMEPR -Destination KB-9-241 | format-Table -AutoSize
+        PS C:\> Get-OMEPR -Destination PRINTER01 | format-Table -AutoSize
         Server                    EPR             Destination Driver      Tray    Duplex  Paper   RX  Media
         ------                    ---             ----------- ------      ----    ------  -----   --  -----
-        servername.domain.local   KB-9-241        KB-9-241    LexUPDv2    !1              !1      n
-        servername.domain.local   KB-9-241-RX$    KB-9-241    LexUPDv2    !2              !1      n
+        servername.domain.local   PRINTER01        PRINTER01  LexUPDv2    !1              !1      n
+        servername.domain.local   PRINTER01-RX     PRINTER01  LexUPDv2    !2              !1      n
 
     .EXAMPLE
-        PS C:\> Get-OMEPR -Destination KB-9-241 -RetrieveNames | format-Table -AutoSize
+        PS C:\> Get-OMEPR -Destination PRINTER01 -RetrieveNames | format-Table -AutoSize
         Server                    EPR             Destination Driver      Tray    Duplex  Paper   RX  Media
         ------                    ---             ----------- ------      ----    ------  -----   --  -----
-        servername.domain.local   KB-9-241        KB-9-241    LexUPDv2    Tray 1          Letter  n
-        servername.domain.local   KB-9-241-RX$    KB-9-241    LexUPDv2    Tray 2          Letter  n
+        servername.domain.local   PRINTER01        PRINTER01  LexUPDv2    Tray 1          Letter  n
+        servername.domain.local   PRINTER01-RX     PRINTER01  LexUPDv2    Tray 2          Letter  n
 
     .EXAMPLE
-        PS C:\> Get-OMEPR -Queue KB-9-241-RX$ | format-Table -AutoSize
+        PS C:\> Get-OMEPR -Queue PRINTER01-RX  | format-Table -AutoSize
         Server                    EPR             Destination Driver      Tray    Duplex  Paper   RX  Media
         ------                    ---             ----------- ------      ----    ------  -----   --  -----
-        servername.domain.local   KB-9-241-RX$    KB-9-241    LexUPDv2    !2              !1      n
+        servername.domain.local   PRINTER01-RX     PRINTER01  LexUPDv2    !2              !1      n
 
     .EXAMPLE
-        PS C:\> Get-OMEPR -Queue KB-9-241-RX$ -RetrieveNames | format-Table -AutoSize
+        PS C:\> Get-OMEPR -Queue PRINTER01-RX  -RetrieveNames | format-Table -AutoSize
         Server                    EPR             Destination Driver      Tray    Duplex  Paper   RX  Media
         ------                    ---             ----------- ------      ----    ------  -----   --  -----
-        servername.domain.local   KB-9-241-RX$    KB-9-241    LexUPDv2    Tray 2          Letter  n
+        servername.domain.local   PRINTER01-RX     PRINTER01  LexUPDv2    Tray 2          Letter  n
 
     .INPUTS
         [string]
@@ -133,7 +133,7 @@ function Get-OMEPR {
                 $PaperName  = ''
             }
             else {
-                $PaperID    = $Record.Tray.Replace('!','')
+                $PaperID    = $Record.Paper.Replace('!','')
                 $XPath      = '/OMPLUS/PTYPE[@name="{0}"]/PSIZE/PAPER[@id={1}]' -f $Driver, $PaperID
                 $PaperName  = $TypesConf.SelectNodes($XPath) | Select-Object -ExpandProperty InnerXML
             }

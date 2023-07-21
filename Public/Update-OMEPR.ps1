@@ -121,7 +121,13 @@ Function Update-OMEPR {
         [switch]$Override,
 
         [parameter(ValueFromPipelineByPropertyName)]
-        [switch]$DoNotBackup
+        [switch]$DoNotBackup,
+
+        [parameter(ValueFromPipelineByPropertyName)]
+        [switch]$ShowRecords,
+
+        [parameter(ValueFromPipelineByPropertyName)]
+        [switch]$UpdateTransformServer
     )
 
     Begin {
@@ -156,7 +162,7 @@ Function Update-OMEPR {
             }
         }
         $EPSMap               = Get-OMEPSMap
-        $breakHere = $true 
+        
         $RegExQueueName       = '^{0}$' -f [regex]::escape($Queue)
     }
 
@@ -182,7 +188,7 @@ Function Update-OMEPR {
             $MatchingEPR.Driver = $DriverName
         }
         else {
-            Write-Verbose -Message 'The driver name {0} has not been supplied, using the existing drivername {1}' -f $DriverName, $MatchingEPR.Driver 
+            Write-Verbose -Message ('The driver name {0} has not been supplied, using the existing drivername {1}' -f $DriverName, $MatchingEPR.Driver )
             $thisDriver = $MatchingEPR.Driver
         }
         $TrayTable      = Get-OMTypeTable -DriverType $thisDriver -Display Trays
@@ -193,19 +199,19 @@ Function Update-OMEPR {
             $MatchingEPR.Destination  = $Destination
         }
         if ($TrayName -and -not $NoValidTrays)      {
-            $MatchingEPR.Tray         = '!{0}' -f ($TrayTable | Where-Object TrayRef -eq $TrayName | Select-Object -ExpandProperty TrayID)
+            $MatchingEPR.Tray         = '!{0}' -f ($TrayTable | Where-Object TrayName -eq $TrayName | Select-Object -ExpandProperty TrayID)
         }
         if ($DuplexOption)  {
             $MatchingEPR.Duplex       = $DuplexOption
         }
         if ($PaperSize -and -not $NoValidPaperSizes)     {
-            $MatchingEPR.Paper        = '!{0}' -f $PaperSizeTable | Where-Object PaperSizeRef -eq $PaperSize | Select-Object -ExpandProperty PaperSizeID
+            $MatchingEPR.Paper        = '!{0}' -f $PaperSizeTable | Where-Object PaperSizeName -eq $PaperSize | Select-Object -ExpandProperty PaperSizeID
         }
         if ($IsRX)          {
             $MatchingEPR.RX           = $IsRX
         }
         if ($MediaType -and -not $NoValidMediaTypes)     {
-            $MatchingEPR.Media        = '!{0}' -f $MediaTypeTable | Where-Object MediaTypeRef -eq $MediaType | Select-Object -ExpandProperty MediaTypeID
+            $MatchingEPR.Media        = '!{0}' -f $MediaTypeTable | Where-Object MediaTypeName -eq $MediaType | Select-Object -ExpandProperty MediaTypeID
         }
         if ($Servername)    {
             $MatchingEPR.Server       = $Servername
@@ -213,11 +219,20 @@ Function Update-OMEPR {
 
         $TempEPS        = New-TemporaryFile
         $TempEPSStream  = [io.streamwriter]::new($TempEPS.FullName)
-        $TempEPSStream.Write($EPSMap.preamble)
+        $Preamble = $EPSMap.preamble -join [Environment]::newline
+        $TempEPSStream.Write($Preamble)
+        $TempEPSStream.Write([environment]::newline)
 
         foreach ($Record in $EPSMap.epsmap) {
-            $thisRecord = ($Record.PSObject.Properties).values -join '|'
-            $thisRecord
+            if ($Record.EPR -notmatch $Queue) {
+                $thisRecord = ($Record.PSObject.Properties).value -join '|'
+            }
+            else {
+                $thisRecord = ($MatchingEPR.PSOBject.Properties).value -join '|'
+            }
+            if ($ShowRecords) {
+                Write-Verbose -Message $thisRecord -Verbose
+            }
             $TempEPSStream.WriteLine( $thisRecord )
         }
     }
@@ -228,13 +243,19 @@ Function Update-OMEPR {
 
         if ($PSCmdlet.ShouldProcess('Would change the EPR for {0}' -f $Queue,'', '')) {
             try {
-                Copy-Item -Path $TempEPS -Destination $EPSMap
-                Write-Warning -Message 'Do not forget to run Update-OMTransformServer to make the updated EPR active'
-                #Remove-Item -Path $TempEPS -Force
+                Copy-Item -Path $TempEPS -Destination $EPSMap.FilePath -ErrorAction Stop 
+                if ($PSBoundParameters.Keys -notcontains 'UpdateTransformServer') {
+                    Write-Warning -Message 'Do not forget to run Update-OMTransformServer to make the updated EPR active'
+                }
+                Remove-Item -Path $TempEPS -Force
             }
             catch {
                 Write-Warning -Message ('Could not copy temporary file ({0}) to overwrite the eps_map, please manually copy it. ' -f $TempEPS.FullName)
             }
+        }
+
+        if ($UpdateTransformServer) {
+            Update-OMTransformServer
         }
     }
 }

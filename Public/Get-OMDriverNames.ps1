@@ -8,20 +8,11 @@ function Get-OMDriverNames {
         PS C:\> Get-OMDriverList
         Name                           Value
         ----                           -----
-        ZDesignerAM400                 ZDesigner ZM400 200 dpi (ZPL)
+        DellOPDPCL5                    Dell Open Print Driver (PCL 5)
+        HPUPD5                         HP Universal Printing PCL 5
         HPUPD6                         HP Universal Printing PCL 6
         LexUPDv2                       Lexmark Universal v2
-        DellOPDPCL5                    Dell Open Print Driver (PCL 5)
-        RICOHPCL6                      RICOH PCL6 UniversalDriver V4.14
-        HPUPD5                         HP Universal Printing PCL 5
-        Zebra2.5x4                     ZDesigner ZM400 200 dpi (ZPL)
-        LexUPDv2PS3                    Lexmark Universal v2 PS3
-        LexUPDv2XL                     Lexmark Universal v2 XL
-        XeroxUPDPS                     Xerox Global Print Driver PS
-        XeroxUPDPCL6                   Xerox Global Print Driver PCL6
         HPUPDPS7                       HP Universal Printing PS (v7.0.0)
-        EpsonT88VI                     EPSON TM-T88VI Receipt5
-        ZT610-300DPI                   ZDesigner ZT610-300dpi ZPL
     .INPUTS
         [none]
     .OUTPUTS
