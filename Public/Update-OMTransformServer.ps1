@@ -8,13 +8,28 @@ function Update-OMTransformServer {
         send the updates. The primary goal is to replicate the eps_map file from the .\system directory
         on the master print server to the .\constants folder on the transform servers.
     .EXAMPLE
-        PS C:\> Update-OMlusTransformServer
-        Using pingmsg to update host: srvtran01
-        Using pingmsg to update host: srvtran02
-        Using pingmsg to update host: srvtran03
-        Using pingmsg to update host: srvtran04
+        PS C:\> Update-OMlusTransformServer -verbose 
+        VERBOSE: On the primary MPS, continuing
+        VERBOSE: $Script:TransformServers exists
+        VERBOSE: Using pingmsg to update host: srvtran01
+        VERBOSE: Triggering update for srvtran01
+        VERBOSE: The filehashes are identical; srvtran01 updated properly
+        VERBOSE: Using pingmsg to update host: srvtran02
+        VERBOSE: Triggering update for srvtran02
+        VERBOSE: The filehashes are identical; srvtran02
+        VERBOSE: Using pingmsg to update host: srvtran03
+        VERBOSE: Triggering update for srvtran03
+        VERBOSE: The filehashes are identical; srvtran03 updated properly
+        VERBOSE: Using pingmsg to update host: srvtran04
+        VERBOSE: Triggering update for srvtran04
+        VERBOSE: The filehashes are identical; srvtran04
+        
+    .PARAMETER HashAlgorithm
+        Lets the user specify an algorithm for the filehash checking. 
+        It is set to a default of SHA256.  
+        The options are 'SHA1','SHA256','SHA384','SHA512','MD5'
     .INPUTS
-        [none]
+        [string]
     .OUTPUTS
         [none]
     .NOTES
