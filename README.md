@@ -699,7 +699,7 @@ ___
 ###### <font color="red">[_Experimental_]</font>
 
 This is an experimental function to generate multiple EPR's for a single destination.
-This is **not** ready for production use at this time.
+This is __not__ ready for production use at this time.
 
 | Parameter | Description |
 | --------- | :---------- |
@@ -725,7 +725,7 @@ Depending on the version of Powershell used (> 5), the parameter names will prov
 | :-------------- | :---------- |
 | `Queue` | The name of the EPR Queue Name for the Record; there can be multiple Queues per Destination |
 | `Destination` | The printer/destination name in OMPlus |
-| `DriverName` | The name of the driver used in the system; this name _is **case-sensitive**_; this name comes from the _Types_ list in the OMPlus Administration tool (See the `Get-OMDriverNames` function|
+| `DriverName` | The name of the driver used in the system; this name _is __case-sensitive___; this name comes from the _Types_ list in the OMPlus Administration tool (See the `Get-OMDriverNames` function|
 | `TrayName` | This is the name of the tray to use.  It must match the trays available in the `types.conf`. |
 | `DuplexOption` | This is the Duplex option setting in the _Epic Print Record_ tool; it comes from the `types.conf` file; it can be _None_ (which is blank), _Simplex_, _Horizontal_ (Short Edge), or _Vertical_ (Long Edge) |
 | `PaperSize` | This is the size of the paper; it also comes from the `types.conf` file |
@@ -1314,21 +1314,30 @@ ___
 This function triggers the automatic update of the `eps_map` and other files from the primary MPS server to the secondary MPS server.
 It happens automatically when the Save button in the EPR Records dialog is clicked.  If the `eps_map` file is updated, and this function is not called, the Transform Servers are not aware of the new printers and updated EPR Records.
 It reads the `sendHosts` file and uses `pingmessage.exe` against the hosts in that file.
+The script also gets the FileHash of the MPS' copy of the `eps_map` file and compares it with the filehash on the transform servers.
 
-There are no parameters for this function
+| Parameter | Description |
+| --------- | :---------- |
+| `HashAlgorithm`  | The file hashing algorithm used to compare the eps_map file on the MPS and the Transform servers |
 
 ##### _Example_
 
 ```powershell
-PS C:\> Update-OMTransformServer
-VERBOSE: Using pingmsg to update host: transformserver01.hchd.local
-VERBOSE: Triggering update for transformserver01.hchd.local
-VERBOSE: Using pingmsg to update host: transformserver02.hchd.local
-VERBOSE: Triggering update for transformserver02.hchd.local
-VERBOSE: Using pingmsg to update host: transformserver03.hchd.local
-VERBOSE: Triggering update for transformserver03.hchd.local
-VERBOSE: Using pingmsg to update host: transformserver04.hchd.local
-VERBOSE: Triggering update for transformserver04.hchd.local
+        PS C:\> Update-OMlusTransformServer -verbose 
+        VERBOSE: On the primary MPS, continuing
+        VERBOSE: $Script:TransformServers exists
+        VERBOSE: Using pingmsg to update host: srvtran01
+        VERBOSE: Triggering update for srvtran01
+        VERBOSE: The filehashes are identical; srvtran01 updated properly
+        VERBOSE: Using pingmsg to update host: srvtran02
+        VERBOSE: Triggering update for srvtran02
+        VERBOSE: The filehashes are identical; srvtran02
+        VERBOSE: Using pingmsg to update host: srvtran03
+        VERBOSE: Triggering update for srvtran03
+        VERBOSE: The filehashes are identical; srvtran03 updated properly
+        VERBOSE: Using pingmsg to update host: srvtran04
+        VERBOSE: Triggering update for srvtran04
+        VERBOSE: The filehashes are identical; srvtran04
 ```
 
 [Jump to Top :arrow_up:](#)

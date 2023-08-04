@@ -23,7 +23,9 @@ function Update-OMTransformServer {
         VERBOSE: Using pingmsg to update host: srvtran04
         VERBOSE: Triggering update for srvtran04
         VERBOSE: The filehashes are identical; srvtran04
-        
+    .PARAMETER ValidateResults
+        Using this switch causes the script to validate the eps_map file was properly updated by 
+        comparing the filehash on the MPS eps_map and the Transform server(s) copy of eps_map.
     .PARAMETER HashAlgorithm
         Lets the user specify an algorithm for the filehash checking. 
         It is set to a default of SHA256.  
@@ -40,13 +42,19 @@ function Update-OMTransformServer {
     [cmdletbinding()]
     param(
         [parameter(ValueFromPipelineByPropertyName)]
+        [switch]$ValidateResults,
+        
+        [parameter(ValueFromPipelineByPropertyName)]
         [ValidateSet('SHA1','SHA256','SHA384','SHA512','MD5')]
         [String]$HashAlgorithm = 'SHA256'
     )
+
     if ($Script:IsPrimaryMPS) {
         Write-Verbose -Message 'On the primary MPS, continuing'
-        $EPSMapPath     = [System.IO.Path]::Combine($env:OMHOME, 'system', 'eps_map')
-        $EPSMapFileHash = Get-FileHash -Path $EPSMapPath -Algorithm $HashAlgorithm | Select-Object -ExpandProperty Hash
+        if ($ValidateResults) {
+            $EPSMapPath     = [System.IO.Path]::Combine($env:OMHOME, 'system', 'eps_map')
+            $EPSMapFileHash = Get-FileHash -Path $EPSMapPath -Algorithm $HashAlgorithm | Select-Object -ExpandProperty Hash
+        }
     }
     else {
         throw 'Not on the Primary MPS, unable to proceed'
@@ -74,18 +82,20 @@ function Update-OMTransformServer {
         Write-Verbose -Message ('Triggering update for {0}' -f $thisHost)
         Start-Process @pingSplat -Verb RunAs
 
-        $TransformHash = Invoke-Command -ComputerName $thisHost -ScriptBlock {
-            $EPSMapPath = [system.io.path]::Combine($env:OMHOME, 'constants', 'eps_map')
-            Get-FileHash -Path $EPSMapPath -Algorithm SHA256 | Select-Object -ExpandProperty Hash
-        }
-        if ($TransformHash -eq $EPSMapFileHash) {
-            $Message = 'The filehashes are identical; {0} updated properly' -f $thisHost
-            Write-Verbose -Message $Message
-        }
-        else {
-            $Message = 'The eps_map hashes are not the same:{0}MPS eps_map hash: {1}{0} Transform server ({2}) eps_map hash:{3}' -f 
-                        [environment]::NewLine, $EPSMapFileHash, $thisHost, $TransformHash
-            Write-Warning -Message $Message
+        if ($ValidateResults) {
+            $TransformHash = Invoke-Command -ComputerName $thisHost -ScriptBlock {
+                $EPSMapPath = [system.io.path]::Combine($env:OMHOME, 'constants', 'eps_map')
+                Get-FileHash -Path $EPSMapPath -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+            }
+            if ($TransformHash -eq $EPSMapFileHash) {
+                $Message = 'The filehashes are identical; {0} updated properly' -f $thisHost
+                Write-Verbose -Message $Message
+            }
+            else {
+                $Message = 'The eps_map hashes are not the same:{0}MPS eps_map hash: {1}{0} Transform server ({2}) eps_map hash:{3}' -f 
+                            [environment]::NewLine, $EPSMapFileHash, $thisHost, $TransformHash
+                Write-Warning -Message $Message
+            }
         }
     }
 }
