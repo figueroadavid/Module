@@ -23,9 +23,15 @@ function Update-OMTransformServer {
     #>
 
     [cmdletbinding()]
-    param()
+    param(
+        [parameter(ValueFromPipelineByPropertyName)]
+        [ValidateSet('SHA1','SHA256','SHA384','SHA512','MD5')]
+        [String]$HashAlgorithm = 'SHA256'
+    )
     if ($Script:IsPrimaryMPS) {
         Write-Verbose -Message 'On the primary MPS, continuing'
+        $EPSMapPath     = [System.IO.Path]::Combine($env:OMHOME, 'system', 'eps_map')
+        $EPSMapFileHash = Get-FileHash -Path $EPSMapPath -Algorithm $HashAlgorithm | Select-Object -ExpandProperty Hash
     }
     else {
         throw 'Not on the Primary MPS, unable to proceed'
@@ -42,7 +48,7 @@ function Update-OMTransformServer {
 
     $Script:TransformServers | ForEach-Object {
         $thisHost               = $_
-        Write-Verbose -Message ('Using pingmsg to update host: {0}' -f $thisHost ) -Verbose
+        Write-Verbose -Message ('Using pingmsg to update host: {0}' -f $thisHost )
         $pingSplat = @{
             FilePath            = $PingMsgPath
             ArgumentList        = $thisHost
@@ -50,7 +56,21 @@ function Update-OMTransformServer {
             WindowStyle         = 'Hidden'
             WorkingDirectory    = [system.io.path]::Combine($env:OMHOME, 'bin')
         }
-        Write-Verbose -Message ('Triggering update for {0}' -f $thisHost) -Verbose
+        Write-Verbose -Message ('Triggering update for {0}' -f $thisHost)
         Start-Process @pingSplat -Verb RunAs
+
+        $TransformHash = Invoke-Command -ComputerName $thisHost -ScriptBlock {
+            $EPSMapPath = [system.io.path]::Combine($env:OMHOME, 'constants', 'eps_map')
+            Get-FileHash -Path $EPSMapPath -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+        }
+        if ($TransformHash -eq $EPSMapFileHash) {
+            $Message = 'The filehashes are identical; {0} updated properly' -f $thisHost
+            Write-Verbose -Message $Message
+        }
+        else {
+            $Message = 'The eps_map hashes are not the same:{0}MPS eps_map hash: {1}{0} Transform server ({2}) eps_map hash:{3}' -f 
+                        [environment]::NewLine, $EPSMapFileHash, $thisHost, $TransformHash
+            Write-Warning -Message $Message
+        }
     }
 }
