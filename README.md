@@ -1325,19 +1325,21 @@ The script also gets the FileHash of the MPS' copy of the `eps_map` file and com
 ```powershell
         PS C:\> Update-OMlusTransformServer -verbose 
         VERBOSE: On the primary MPS, continuing
-        VERBOSE: $Script:TransformServers exists
-        VERBOSE: Using pingmsg to update host: srvtran01
-        VERBOSE: Triggering update for srvtran01
-        VERBOSE: The filehashes are identical; srvtran01 updated properly
-        VERBOSE: Using pingmsg to update host: srvtran02
-        VERBOSE: Triggering update for srvtran02
-        VERBOSE: The filehashes are identical; srvtran02
-        VERBOSE: Using pingmsg to update host: srvtran03
-        VERBOSE: Triggering update for srvtran03
-        VERBOSE: The filehashes are identical; srvtran03 updated properly
-        VERBOSE: Using pingmsg to update host: srvtran04
-        VERBOSE: Triggering update for srvtran04
-        VERBOSE: The filehashes are identical; srvtran04
+        VERBOSE: The eps_map hashes are not the same; updating this host VOMPLUSTRNP01
+        VERBOSE: Using pingmsg to update host: VOMPLUSTRNP01
+        VERBOSE: The eps_map hashes are not the same; updating this host VOMPLUSTRNP02
+        VERBOSE: Using pingmsg to update host: VOMPLUSTRNP02
+        VERBOSE: The eps_map hashes are not the same; updating this host VOMPLUSTRNP03
+        VERBOSE: Using pingmsg to update host: VOMPLUSTRNP03
+        VERBOSE: The eps_map hashes are not the same; updating this host VOMPLUSTRNP04
+        VERBOSE: Using pingmsg to update host: VOMPLUSTRNP04
+    
+        PS C:\> Update-OMTransformServer -Verbose
+        VERBOSE: On the primary MPS, continuing
+        VERBOSE: The filehashes are identical for VOMPLUSTRNP01; not running the update
+        VERBOSE: The filehashes are identical for VOMPLUSTRNP02; not running the update
+        VERBOSE: The filehashes are identical for VOMPLUSTRNP03; not running the update
+        VERBOSE: The filehashes are identical for VOMPLUSTRNP04; not running the update
 ```
 
 [Jump to Top :arrow_up:](#)
