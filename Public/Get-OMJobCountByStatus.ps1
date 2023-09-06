@@ -54,12 +54,20 @@ function Get-OMJobCountByStatus {
                      'proc', 'ready', 'sent', 'spool', 'susp', 'timed',
                      'Change Password', 'xfer', '2big', '2dumb', '*'
                      )]
-        [String[]]$Status = 'intrd',
+        [String[]]$Status = ('ready','can','intrd','prtd'),
 
         [parameter(ValueFromPipelineByPropertyName)]
         [switch]$Sorted
     )
 
+    if ($env:OMHOME) {
+        Write-Verbose -Message 'On OMPlus server, continue'
+    }
+    else {
+        Write-Warning -Message 'Not on OMPlus server, unable to do anything'
+        return 
+    }
+    
     $Return = @{}
     if ($Status -eq 'All' -or $Status -eq '*') {
         $Status = 'active', 'can', 'cmplt', 'faild', 'faxed',

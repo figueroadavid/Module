@@ -268,15 +268,33 @@ Function Set-OMPrinterConfiguration {
     )
 
     Begin {
-        $EPSMapTestPath = [system.io.path]::combine($env:OMHOME, 'system', 'eps_map')
-        if (Test-Path -Path $EPSMapTestPath) {
-            Write-Verbose -Message 'On PrimaryMPS, proceeding'
+        $ServerRole = Get-OMServerRole 
+        switch ($ServerRole) {
+            'MPS' {
+                Write-Verbose -Message 'On PrimaryMPS, proceeding'
+            }
+            'TRN'  {
+                $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'receiveHosts'))
+                Write-Warning -Message 'On a transform server; printers should only be created on the primary MPS: {0}' -f $PrimaryMPS
+                return 
+            }
+            'BKP' {
+                $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'pingMaster'))
+                Write-Warning -Message 'On the secondary MPS server, printers should only be created on the primary MPS: {0}' -f $PrimaryMPS
+                return 
+            }
+            default {
+                Write-Warning -Message 'Not on an OMPlus server'
+                return 
+            }
         }
-        else {
-            throw 'Not on Primary MPS; unable to proceed'
+    
+        $thisPrinterName = Get-OMCaseSensitivePrinterName -PrinterName $PrinterName
+        if ($null -eq $thisPrinterName) {
+            $Message = 'This printer ({0}) does not exist; either correct the spelling of the printer name or use the New-OMPrinter command' -f $PrinterName
+            Write-Warning -Message $Message
+            return 
         }
-
-        $PrinterName = Get-OMCaseSensitivePrinterName -PrinterName $PrinterName
 
         if ($IsFullTesting) {
             $PSBoundParameters
@@ -284,6 +302,7 @@ Function Set-OMPrinterConfiguration {
         }
 
         if ($Model) {
+            $ValidModels = Get-ChildItem -Path ([System.IO.Path]::combine($env:OMHOME, 'model')) | Select-Object -ExpandProperty BaseName
             if ($Model -in $ValidModels) {
                 $Message = 'Model "{0}" is a valid type' -f $Model
                 Write-Verbose -Message $Message
@@ -293,6 +312,7 @@ Function Set-OMPrinterConfiguration {
                 throw $Message
             }
         }
+
 
         if ($Notes) {
             if ($Notes.Contains('"')) {
@@ -324,9 +344,9 @@ Function Set-OMPrinterConfiguration {
     process {
         Write-Verbose -Message 'Begin building command line string for lpadmin'
             $ArgString = [Collections.Generic.List[string]]::New()
-            $null = $ArgString.Add( ('-p{0}' -f $PrinterName) )
+            $null = $ArgString.Add( ('-p{0}' -f $thisPrinterName) )
 
-        $PrinterConfiguration = Get-OMPrinterConfiguration -PrinterName $PrinterName -Property all 
+        $PrinterConfiguration = Get-OMPrinterConfiguration -PrinterName $thisPrinterName -Property all 
 
         foreach ($Parameter in $PSBoundParameters.Keys) {
             switch ($Parameter) {
@@ -409,13 +429,13 @@ Function Set-OMPrinterConfiguration {
     }
 
     end {
-        if ($PSCmdlet.ShouldProcess(('Modifying printer {0}' -f $PrinterName), '', '')) {
+        if ($PSCmdlet.ShouldProcess(('Modifying printer {0}' -f $thisPrinterName), '', '')) {
             $LPAdmin = [System.IO.Path]::combine( $env:OMHOME, 'bin', 'lpadmin.exe' )
             if ($IsTesting -or $IsFullTesting) {
                 '{0} {1}' -f $LPAdmin, ($ArgString -join ' ')
             }
             else {
-                Write-Verbose -Message ('Modifying printer ({0})' -f $PrinterName)
+                Write-Verbose -Message ('Modifying printer ({0})' -f $thisPrinterName)
                 $ProcStart = @{
                     FilePath        = $LPAdmin
                     ArgumentList    = $ArgString

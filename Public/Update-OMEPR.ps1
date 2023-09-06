@@ -131,6 +131,28 @@ Function Update-OMEPR {
     )
 
     Begin {
+
+        $ServerRole = Get-OMServerRole 
+        switch ($ServerRole) {
+            'MPS' {
+                Write-Verbose -Message 'On PrimaryMPS, proceeding'
+            }
+            'TRN'  {
+                $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'receiveHosts'))
+                Write-Warning -Message 'On a transform server; Epic Print Records should only be modified on the primary MPS: {0}' -f $PrimaryMPS
+                return 
+            }
+            'BKP' {
+                $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'pingMaster'))
+                Write-Warning -Message 'On the secondary MPS server, Epic Print Records should only be modified on the primary MPS: {0}' -f $PrimaryMPS
+                return 
+            }
+            default {
+                Write-Warning -Message 'Not on an OMPlus server'
+                return 
+            }
+        }
+    
         if ($PSBoundParameters.ContainsKey('Destination') -or
             $PSBoundParameters.ContainsKey('DriverName') -or 
             $PSBoundParameters.ContainsKey('TrayName') -or

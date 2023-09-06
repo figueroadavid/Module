@@ -269,6 +269,8 @@ Retrieves the list of all printers that currently show as disabled
 | `SMTPSubject` | The subject line for the report email |
 | `SMTPServer` | The mail server to send the email to |
 | `SMTPort` | The TCP port of the mail server for SMTP mail |
+| `SendEmailEvenIfNoDisabledPrinters` | Tells the script send an email, even if there are no disabled printers; intended for automation |
+| `ShowProgress` | Shows a progress bar as the printers are evaluated.  Useful for systems with a large amount of printers |
 
 ##### _Example_
 
@@ -699,7 +701,7 @@ ___
 ###### <font color="red">[_Experimental_]</font>
 
 This is an experimental function to generate multiple EPR's for a single destination.
-This is __not__ ready for production use at this time.
+This is **not** ready for production use at this time.
 
 | Parameter | Description |
 | --------- | :---------- |
@@ -725,7 +727,7 @@ Depending on the version of Powershell used (> 5), the parameter names will prov
 | :-------------- | :---------- |
 | `Queue` | The name of the EPR Queue Name for the Record; there can be multiple Queues per Destination |
 | `Destination` | The printer/destination name in OMPlus |
-| `DriverName` | The name of the driver used in the system; this name _is __case-sensitive___; this name comes from the _Types_ list in the OMPlus Administration tool (See the `Get-OMDriverNames` function|
+| `DriverName` | The name of the driver used in the system; this name _is **case-sensitive**_; this name comes from the _Types_ list in the OMPlus Administration tool (See the `Get-OMDriverNames` function|
 | `TrayName` | This is the name of the tray to use.  It must match the trays available in the `types.conf`. |
 | `DuplexOption` | This is the Duplex option setting in the _Epic Print Record_ tool; it comes from the `types.conf` file; it can be _None_ (which is blank), _Simplex_, _Horizontal_ (Short Edge), or _Vertical_ (Long Edge) |
 | `PaperSize` | This is the size of the paper; it also comes from the `types.conf` file |
@@ -735,6 +737,7 @@ Depending on the version of Powershell used (> 5), the parameter names will prov
 | `Force` | This is used as part of the `Set-Content` operation used to overwrite the existing `eps_map` and should generally not be necessary |
 | `UpdateTransform` | This triggers the `Update-Transform` command to trigger the normal OMPlus replication mechanism |
 | `AllowMixedCase` | By default, this function will force the Queue name to UPPER CASE to match Epic requirements.  This switch causes the function to NOT force them to uppercase |
+| `OverRide` | This switch allows the script to generate an EPR even if the printer does not exist |
 
 ##### _Example_
 
@@ -1314,32 +1317,21 @@ ___
 This function triggers the automatic update of the `eps_map` and other files from the primary MPS server to the secondary MPS server.
 It happens automatically when the Save button in the EPR Records dialog is clicked.  If the `eps_map` file is updated, and this function is not called, the Transform Servers are not aware of the new printers and updated EPR Records.
 It reads the `sendHosts` file and uses `pingmessage.exe` against the hosts in that file.
-The script also gets the FileHash of the MPS' copy of the `eps_map` file and compares it with the filehash on the transform servers.
 
-| Parameter | Description |
-| --------- | :---------- |
-| `HashAlgorithm`  | The file hashing algorithm used to compare the eps_map file on the MPS and the Transform servers |
+There are no parameters for this function
 
 ##### _Example_
 
 ```powershell
-        PS C:\> Update-OMlusTransformServer -verbose 
-        VERBOSE: On the primary MPS, continuing
-        VERBOSE: The eps_map hashes are not the same; updating this host VOMPLUSTRNP01
-        VERBOSE: Using pingmsg to update host: VOMPLUSTRNP01
-        VERBOSE: The eps_map hashes are not the same; updating this host VOMPLUSTRNP02
-        VERBOSE: Using pingmsg to update host: VOMPLUSTRNP02
-        VERBOSE: The eps_map hashes are not the same; updating this host VOMPLUSTRNP03
-        VERBOSE: Using pingmsg to update host: VOMPLUSTRNP03
-        VERBOSE: The eps_map hashes are not the same; updating this host VOMPLUSTRNP04
-        VERBOSE: Using pingmsg to update host: VOMPLUSTRNP04
-    
-        PS C:\> Update-OMTransformServer -Verbose
-        VERBOSE: On the primary MPS, continuing
-        VERBOSE: The filehashes are identical for VOMPLUSTRNP01; not running the update
-        VERBOSE: The filehashes are identical for VOMPLUSTRNP02; not running the update
-        VERBOSE: The filehashes are identical for VOMPLUSTRNP03; not running the update
-        VERBOSE: The filehashes are identical for VOMPLUSTRNP04; not running the update
+PS C:\> Update-OMTransformServer
+VERBOSE: Using pingmsg to update host: transformserver01.hchd.local
+VERBOSE: Triggering update for transformserver01.hchd.local
+VERBOSE: Using pingmsg to update host: transformserver02.hchd.local
+VERBOSE: Triggering update for transformserver02.hchd.local
+VERBOSE: Using pingmsg to update host: transformserver03.hchd.local
+VERBOSE: Triggering update for transformserver03.hchd.local
+VERBOSE: Using pingmsg to update host: transformserver04.hchd.local
+VERBOSE: Triggering update for transformserver04.hchd.local
 ```
 
 [Jump to Top :arrow_up:](#)

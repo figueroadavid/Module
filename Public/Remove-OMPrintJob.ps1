@@ -89,10 +89,24 @@ Function Remove-OMPrintJob {
         [int]$JobAgeInMinutes,
 
         [parameter(Mandatory, ParameterSetName = 'byPrinter')]
+        [ArgumentCompleter({
+            param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameters)
+                Get-OMPrinterList -filter * |
+                Where-Object { $_ -like "$WordToComplete*"} |
+                Sort-Object |
+                Foreach-Object {
+                    [Management.Automation.CompletionResult]::new(
+                        $_,
+                        $_,
+                        [Management.Automation.CompletionResultType]::ParameterValue,
+                        ('Printer Name: {0}' -f $_ )
+                    )
+                }
+        })]
         [string[]]$PrinterName,
 
         [parameter(Mandatory, ParameterSetName = 'byStatus')]
-        [ValidateSet('can','intrd','activ')]
+        [ValidateSet('can','intrd','activ','ready')]
         [string]$Status,
 
         [parameter(ParameterSetName = 'byPrinter')]
@@ -123,31 +137,34 @@ Function Remove-OMPrintJob {
                 foreach ($Job in $RIDNumber) {
                     if ($Job -match '^\d{1,5}$' -or $Job -cmatch '^RID\d{5}$') {
                         if ($Job -match '^\d{1,5}$') {
-
                             $thisJob = 'RID{0:00000}' -f $Job
                         }
                         else {
                             $thisJob = $Job
                         }
-                        if ($PSCmdlet.ShouldProcess('Cancel job {0}' -f $Job), '', '') {
-                            $ProcSplat = @{
-                                FilePath        = $dccCancelPath
-                                WindowStyle     = 'Hidden'
-                                Wait            = $true
-                            }
-                            if ($ImmediatePurge) {
-                                $ProcSplat['ArgumentList'] = ' -i {0} -k' -f $thisJob
-                            }
-                            else {
-                                $ProcSplat['ArgumentList'] = ' -i {0}' -f $thisJob
-                            }
-
-                            Start-Process @ProcSplat -verb RunAs
-                        }
+                    }
+                    elseif ($Job -match '^rid\d{5}$') {
+                        $Job = $Job.ToUpper()
                     }
                     else {
                         $Message = 'The supplied job name ({0}) is does not match the correct format of 5 digits, or RIDxxxxx; skipping this job' -f $Job
                         Write-Warning -Message $Message
+                        continue 
+                    }
+
+                    if ($PSCmdlet.ShouldProcess('Cancel job {0}' -f $Job), '', '') {
+                        $ProcSplat = @{
+                            FilePath        = $dccCancelPath
+                            WindowStyle     = 'Hidden'
+                            Wait            = $true
+                        }
+                        if ($ImmediatePurge) {
+                            $ProcSplat['ArgumentList'] = ' -i {0} -k' -f $thisJob
+                        }
+                        else {
+                            $ProcSplat['ArgumentList'] = ' -i {0}' -f $thisJob
+                        }
+                        Start-Process @ProcSplat -verb RunAs
                     }
                 }
                 break

@@ -10,21 +10,19 @@ function Update-OMTransformServer {
     .EXAMPLE
         PS C:\> Update-OMlusTransformServer -verbose 
         VERBOSE: On the primary MPS, continuing
-        VERBOSE: The eps_map hashes are not the same; updating this host VOMPLUSTRNP01
-        VERBOSE: Using pingmsg to update host: VOMPLUSTRNP01
-        VERBOSE: The eps_map hashes are not the same; updating this host VOMPLUSTRNP02
-        VERBOSE: Using pingmsg to update host: VOMPLUSTRNP02
-        VERBOSE: The eps_map hashes are not the same; updating this host VOMPLUSTRNP03
-        VERBOSE: Using pingmsg to update host: VOMPLUSTRNP03
-        VERBOSE: The eps_map hashes are not the same; updating this host VOMPLUSTRNP04
-        VERBOSE: Using pingmsg to update host: VOMPLUSTRNP04
-    .EXAMPLE
-        PS C:\> Update-OMTransformServer -Verbose
-        VERBOSE: On the primary MPS, continuing
-        VERBOSE: The filehashes are identical for VOMPLUSTRNP01; not running the update
-        VERBOSE: The filehashes are identical for VOMPLUSTRNP02; not running the update
-        VERBOSE: The filehashes are identical for VOMPLUSTRNP03; not running the update
-        VERBOSE: The filehashes are identical for VOMPLUSTRNP04; not running the update
+        VERBOSE: $Script:TransformServers exists
+        VERBOSE: Using pingmsg to update host: srvtran01
+        VERBOSE: Triggering update for srvtran01
+        VERBOSE: The filehashes are identical; srvtran01 updated properly
+        VERBOSE: Using pingmsg to update host: srvtran02
+        VERBOSE: Triggering update for srvtran02
+        VERBOSE: The filehashes are identical; srvtran02
+        VERBOSE: Using pingmsg to update host: srvtran03
+        VERBOSE: Triggering update for srvtran03
+        VERBOSE: The filehashes are identical; srvtran03 updated properly
+        VERBOSE: Using pingmsg to update host: srvtran04
+        VERBOSE: Triggering update for srvtran04
+        VERBOSE: The filehashes are identical; srvtran04
     .PARAMETER HashAlgorithm
         Lets the user specify an algorithm for the filehash checking. 
         It is set to a default of SHA256.  
@@ -44,6 +42,26 @@ function Update-OMTransformServer {
         [ValidateSet('SHA1','SHA256','SHA384','SHA512','MD5')]
         [String]$HashAlgorithm  = 'SHA256'
     )
+
+    switch ($ServerRole) {
+        'MPS' {
+            Write-Verbose -Message 'On PrimaryMPS, proceeding'
+        }
+        'TRN'  {
+            $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'receiveHosts'))
+            Write-Warning -Message 'On a transform server; the transform update process should only be triggered on the primary MPS: {0}' -f $PrimaryMPS
+            return 
+        }
+        'BKP' {
+            $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'pingMaster'))
+            Write-Warning -Message 'On the secondary MPS server, the transform update process should only be triggered on the primary MPS: {0}' -f $PrimaryMPS
+            return 
+        }
+        default {
+            Write-Warning -Message 'Not on an OMPlus server'
+            return 
+        }
+    }
 
     $EPSMapPath     = [System.IO.Path]::Combine($env:OMHOME, 'system', 'eps_map')
 

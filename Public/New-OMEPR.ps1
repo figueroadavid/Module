@@ -73,6 +73,9 @@ Function New-OMEPR {
     .PARAMETER AllowMixedCase
         By default, the script will force the Queue and Destination names to upper case.
         Using this switch allows the script to use the case as inserted into the parameter.
+    
+    .PARAMETER OverRide
+        Allows the script to generate EPR's even without the printer exisitng ahead of time.
 
     .INPUTS
         [string]
@@ -205,22 +208,69 @@ Function New-OMEPR {
         [switch]$UpdateTransform,
 
         [parameter(ValueFromPipelineByPropertyName)]
-        [switch]$AllowMixedCase
+        [switch]$AllowMixedCase,
+
+        [parameter(ValueFromPipelineByPropertyName)]
+        [switch]$OverRide
     )
 
     begin {
+
+        $ServerRole = Get-OMServerRole 
+        switch ($ServerRole) {
+            'MPS' {
+                $EPSMapPath     = [system.io.path]::combine($env:OMHome,'system', 'eps_map')
+                $TypesConfPath  = [system.io.path]::combine($env:OMHome, 'system', 'types.conf')
+            }
+            'TRN'  {
+                $Message = 'On Transform server, the eps_map cannot be modified here'
+                Write-Warning -Message $Message 
+                return 
+            }
+            'BKP' {
+                Write-Warning -Message 'On the secondary MPS server, the eps_map is not available'
+                return 
+            }
+            default {
+                Write-Warning -Message 'Not on an OMPlus server'
+                return 
+            }
+        }
+    
         if ($Append) {
             $EPSMapPath = [io.path]::Combine($env:OMHOME, 'system', 'eps_map')
         }
 
-        if ($TrayName -ne 'None')  { $TrayDictionary      = Get-OMTypeTable -DriverType $DriverName -Display Trays }
-        if ($PaperSize -ne 'None') { $PaperSizeDictionary = Get-OMTypeTable -DriverType $DriverName -Display PaperSizes }
-        if ($MediaType -ne 'None') { $MediaTypeDictionary = Get-OMTypeTable -DriverType $DriverName -Display MediaTypes }
+        $EPSMap = (Get-OMEPSMap).epsmap 
+        $TestQueue  = [regex]::Escape($Queue)
+
+        if ($EPSMap.EPR -contains $Queue) {
+            $FlatRecord = $EPSMap | Where-Object EPR -match $TestQueue | Format-Table
+            $Message = 'Duplicate EPR/Queue Name, not continuing{0}Existing queue:{0}{1}' -f [Environment]::NewLine, $FlatRecord
+            Write-Warning  -Message $Message
+            return 
+        }
+
+        $TypesConf = New-Object -TypeName xml
+        $TypesConf.Load($TypesConfPath)
+        $TypesConfDriverList = Select-XML -XPath '/OMPLUS/PTYPE' | 
+            Select-Object -ExpandProperty Node |
+            Select-Object -ExpandProperty name 
+
+        if ($Driver -in $TypesConfDriverList) {
+            if ($TrayName  -ne 'None') { $TrayDictionary      = Get-OMTypeTable -DriverType $DriverName -Display Trays }
+            if ($PaperSize -ne 'None') { $PaperSizeDictionary = Get-OMTypeTable -DriverType $DriverName -Display PaperSizes }
+            if ($MediaType -ne 'None') { $MediaTypeDictionary = Get-OMTypeTable -DriverType $DriverName -Display MediaTypes }
+            $NoTypeDataAvailable = $false 
+        }
+        else {
+            $NoTypeDataAvailable = $true 
+        }
         
         $PrinterDir = Get-Item -Path ([system.io.path]::Combine($env:OMHOME, 'printers'))
         $OMQueue = $PrinterDir.EnumerateDirectories($Destination).name 
 
-        if (-not $OMQueue ) {
+        if (-not $OMQueue -or $OverRide) {
             throw 'This destination (printer) does not exist; not creating the EPR'
         }
     }
@@ -234,19 +284,14 @@ Function New-OMEPR {
         else {
             $thisRecord.Add(($Queue.ToUpper()))
         }
-        if ($AllowMixedCase) {
-            $thisRecord.Add($OMQueue)
-        }
-        else {
-            $thisRecord.Add(($OMQueue.ToUpper()))
-        }
+
         $thisRecord.Add($DriverName)
 
-        if ($TrayName -eq 'None') {
+        if ($TrayName -eq 'None' -or $NoTypeDataAvailable) {
             $thisRecord.Add('DELETEME')
         }
         else {
-            $thisMatch = $TrayDictionary.Where{ $_.TrayName -match ('{0}' -f [RegEx]::Escape($TrayName)) }
+            $thisMatch = $TrayDictionary.Where{ $_.TrayName -like $TrayName }
             switch ($thisMatch.Count) {
                 0 {
                     $thisRecord.Add('DELETEME')
@@ -264,18 +309,18 @@ Function New-OMEPR {
             Remove-Variable -Name thisMatch
         }
 
-        if ($DuplexOption -eq 'None') {
+        if ($DuplexOption -eq 'None' -or $NoTypeDataAvailable) {
             $thisRecord.Add('DELETEME')
         }
         else {
             $thisRecord.Add($DuplexOption)
         }
 
-        if ($PaperSize -eq 'None') {
+        if ($PaperSize -eq 'None' -or $NoTypeDataAvailable) {
             $thisRecord.Add('DELETEME')
         }
         else {
-            $thisMatch = $PaperSizeDictionary.Where{ $_.PaperSizeName -Match ('{0}' -f [RegEx]::Escape($PaperSize)) }
+            $thisMatch = $PaperSizeDictionary.Where{ $_.PaperSizeName -like $PaperSize }
             switch ($thisMatch.Count) {
                 0 {
                     $thisRecord.Add('DELETEME')
@@ -296,11 +341,11 @@ Function New-OMEPR {
 
         $thisRecord.Add($IsRX)
 
-        if ($MediaType -eq 'None') {
+        if ($MediaType -eq 'None' -or $NoTypeDataAvailable) {
             $thisRecord.Add('DELETEME')
         }
         else {
-            $thisMatch = $MediaTypeDictionary.Where{ $_.MediaTypeName -match ('^{0}$' -f [regex]::Escape($MediaType)) }
+            $thisMatch = $MediaTypeDictionary.Where{ $_.MediaTypeName -like $MediaType }
 
             switch ($thisMatch.Count) {
                 0 {
@@ -325,8 +370,7 @@ Function New-OMEPR {
 
     end {
         if ($Append -and $PSCmdlet.ShouldProcess('Updating eps_map file', '', '')) {
-            $Content = (Get-Content -Path $EPSMapPath -Raw).TrimEnd()
-            $Content += "`r`n$thisRecord"
+            $Content = (Get-Content -Path $EPSMapPath -Raw).TrimEnd() += "`r`n$thisRecord"
             Set-Content -Path $EPSMapPath -Value $Content -Force
 
             if ($UpdateTransform) {

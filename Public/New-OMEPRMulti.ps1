@@ -99,6 +99,8 @@ Function New-OMEPRMulti {
 
     Begin {
         $Destination = Get-OMCaseSensitivePrinterName -PrinterName $Destination
+        Write-Warning 'This script is not ready for use'
+        Return 
     }
 
     Process {
@@ -109,7 +111,7 @@ Function New-OMEPRMulti {
                 'OMQueue'       = $Destination
                 'DriverName'    = $DriverName
             }
-            $RecordSet = @(New-OMEPRRecord @EPRSplat)
+            $RecordSet = @(New-OMEPR @EPRSplat)
         }
         else {
             $RecordSet = for ($i = 1; $i -le $TrayCount; $i++) {

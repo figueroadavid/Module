@@ -121,6 +121,15 @@ Function Get-OMPrinterConfiguration {
         [string[]]$Property = 'Device'
     )
 
+    if ($env:OMHOME) {
+        Write-Verbose -Message 'On OMPlus server, continue'
+    }
+    else {
+        Write-Warning -Message 'Not on OMPlus server, unable to do anything'
+        return 
+    }
+
+
     if ($Property -contains 'All' -or $Property -contains '*') {
         $AllProperties = $true
     }

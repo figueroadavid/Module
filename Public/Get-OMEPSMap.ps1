@@ -48,22 +48,27 @@ function Get-OMEPSMap {
         [string]$FilePath
     )
 
-    if ($Script:IsPrimaryMPS -or $Script:IsTransformServer -or $FilePath) {
-        if ($Script:IsPrimaryMPS) {
-            $FilePath   = [System.IO.Path]::combine($env:OMHOME, 'system',  'eps_map')
-        }
-        elseif ($Script:IsTransformServer) {
-            $FilePath   = [System.IO.Path]::combine($env:OMHOME, 'constants', 'eps_map')
-        }
-        elseif (test-path -path $FilePath) {
-            Write-Verbose -Message ('eps_map file found at {0}' -f $FilePath )
-        }
-        else {
-            throw 'eps_map file not found'
-        }
+    if ($FilePath) {
+        $EPSMapPath = $FilePath
     }
     else {
-        throw 'On the secondary MPS server, or $FilePath was not provided; the eps_map is not available'
+        $ServerRole = Get-OMServerRole 
+        switch ($ServerRole) {
+            'MPS' {
+                $EPSMapPath  = [system.io.path]::combine($env:OMHome, 'system', 'eps_map')
+            }
+            'TRN'  {
+                $EPSMapPath  = [system.io.path]::combine($env:OMHome, 'constants', 'eps_map')
+            }
+            'BKP' {
+                Write-Warning -Message 'On the secondary MPS server, the eps_map is not available'
+                return 
+            }
+            default {
+                Write-Warning -Message 'Not on an OMPlus server'
+                return 
+            }
+        }
     }
 
     $RawEPSMap          = Get-Content -Path $FilePath

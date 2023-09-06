@@ -39,7 +39,27 @@ function Send-OMTestPage {
         [parameter(ValueFromPipelineByPropertyName)]
         [switch]$ShowOutput
     )
-    $DCCLPPath = [system.io.path]::Combine($env:omhome, 'bin', 'dcclp.exe')
+
+    $ServerRole = Get-OMServerRole 
+    switch ($ServerRole) {
+        'MPS' {
+            $DCCLPPath = [system.io.path]::Combine($env:omhome, 'bin', 'dcclp.exe')        }
+        'TRN'  {
+            $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'receiveHosts'))
+            $Message = 'On Transform server, test prints should only be sent on the primary MPS: {0}' -f $PrimaryMPS
+            Write-Warning -Message $Message 
+            return 
+        }
+        'BKP' {
+            $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'pingMaster'))
+            Write-Warning -Message 'On the secondary MPS server, test prints should only be sent on the primary MPS: {0}' -f $PrimaryMPS
+            return 
+        }
+        default {
+            Write-Warning -Message 'Not on an OMPlus server'
+            return 
+        }
+    }
 
     foreach ($Printer in $PrinterName) {
 

@@ -133,5 +133,4 @@ Function New-OMSampleBulkImportFile {
     else {
         $ParameterSet -join ',' | Out-File -FilePath $FilePath
     }
-
 }

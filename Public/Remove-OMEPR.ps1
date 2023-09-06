@@ -80,30 +80,49 @@ function Remove-OMEPR {
     )
 
     begin {
-        $EPSMapPath = [system.io.path]::combine($env:OMHOME, 'system', 'eps_map')
+        $ServerRole = Get-OMServerRole 
+        switch ($ServerRole) {
+            'MPS' {
+                Write-Verbose -Message 'On PrimaryMPS, proceeding'
+                $EPSMapPath = [system.io.path]::combine($env:OMHOME, 'system', 'eps_map')
+            }
+            'TRN'  {
+                $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'receiveHosts'))
+                Write-Warning -Message 'On a transform server; the eps_map should only be modified on the primary MPS: {0}' -f $PrimaryMPS
+                return 
+            }
+            'BKP' {
+                $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'pingMaster'))
+                Write-Warning -Message 'On the secondary MPS server, the eps_map cannot be modified on this server; it must be done on the primary MPS: {0}' -f $PrimaryMPS
+                return 
+            }
+            default {
+                Write-Warning -Message 'Not on an OMPlus server'
+                return 
+            }
+        }
     }
     
     process {
-        if (Test-Path -Path $EPSMapPath) {
+        if ($OverrideWarning) {
+            Write-Warning -Message 'EPS_Map not backed up, but override specified; continuing function'
+        }
+        else {
             if (New-OMEPSMapBackup) {
                 Write-Verbose -Message 'EPS_Map backed up'
             }
-            elseif ($OverrideWarning) {
-                Write-Warning -Message 'EPS_Map not backed up, but override specified; continuing function'
-            }
             else {
-                Throw -Message 'Not on the primary MPS; unable to continue'
+                $Message = 'eps_map not backed up; and $OverRide not specified; not continuing'
+                Write-Warning -Message $Message
+                return 
             }
-
-            $EPSMap                 = Get-OMEPSMap
-            $TotalOriginalCount     = $EPSMap.EPSMap.Count
-
-            $TempEPSMap             = New-TemporaryFile -WhatIf:$false
-            $TempStream             = [System.IO.StreamWriter]::New($TempEPSMap.FullName)
         }
-        else {
-            throw 'Not on the primary MPS server, the eps_map cannot be modified here'
-        }
+
+        $EPSMap                 = Get-OMEPSMap
+        $TotalOriginalCount     = $EPSMap.EPSMap.Count
+
+        $TempEPSMap             = New-TemporaryFile -WhatIf:$false
+        $TempStream             = [System.IO.StreamWriter]::New($TempEPSMap.FullName)
 
         $EPSRecords = $EPSMap.EPSMap.Where{ $_.$LocateBy -notin $SearchTerm }
         $Message = 'Removing these EPS Records:{0}{1}' -f [Environment]::NewLine, $EPSRecords

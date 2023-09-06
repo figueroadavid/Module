@@ -136,6 +136,27 @@ Function Get-OMTypeTable {
         [string]$SortBy = 'Name'
     )
     
+    $ServerRole = Get-OMServerRole 
+    switch ($ServerRole) {
+        'MPS' {
+            $TypesConf = [system.io.path]::combine($env:OMHome,'system', 'types.conf')
+        }
+        'TRN'  {
+            $Message = 'On Transform server, the types.conf list is not available'
+            Write-Warning -Message $Message 
+            return 
+        }
+        'BKP' {
+            Write-Warning -Message 'On the secondary MPS server, this list is not available'
+            return 
+        }
+        default {
+            Write-Warning -Message 'Not on an OMPlus server'
+            return 
+        }
+    }
+
+
     $DriverNames = (Get-OMDriverNames).keys
     If ($DriverNames.Contains($DriverType) ) {
         $DriversWithConfigInformation = Select-Xml -Xml $TypesConf -XPath '/OMPLUS/PTYPE' |

@@ -79,12 +79,22 @@ function Get-OMEPR {
         [switch]$RetrieveNames
     )
 
-    if ($Script:IsPrimaryMPS -or $Script:IsTransformServer) {
-        Write-Verbose -Message 'On either the Primary MPS or a Transform server; continuing'
-    }
-    else {
-        Write-Warning 'On secondary MPS server, unable to retrieve eps_map'
-        return
+    $ServerRole = Get-OMServerRole 
+    switch ($ServerRole) {
+        'MPS' {
+            $TypesConfPath  = [system.io.path]::combine($env:OMHome, 'system', 'types.conf')
+        }
+        'TRN'  {
+            $TypesConfPath  = [system.io.path]::combine($env:OMHome, 'constants', 'types.conf')
+        }
+        'BKP' {
+            Write-Warning -Message 'On the secondary MPS server, the eps_map is not available'
+            return 
+        }
+        default {
+            Write-Warning -Message 'Not on an OMPlus server'
+            return 
+        }
     }
 
     $EPSMap = (Get-OMEPSMap).EPSMap
@@ -98,62 +108,75 @@ function Get-OMEPR {
         }
     }
 
-    if ($RetrieveNames -and $Script:IsPrimaryMPS) {
-        $TypesConfPath = (Get-Item -Path ([System.IO.Path]::Combine($ENV:OMHOME, 'system', 'types.conf'))).FullName
+    if ($RetrieveNames) {
         $TypesConf = New-Object -TypeName xml
         $TypesConf.Load($TypesConfPath)
+        $TypesConfDriverList = Select-XML -XPath '/OMPLUS/PTYPE' | 
+            Select-Object -ExpandProperty Node |
+            Select-Object -ExpandProperty name 
 
         foreach ($Record in $Records) {
             $Driver = $Record.Driver
 
-            Write-Verbose -Message 'Enumerate the Tray ID, strip the ! and get the text name'
-            if ($null -eq $Record.Tray ) {
-                $trayName   = 'none'
+            if ($TypesConfDriverList -notcontains $Driver) {
+                $Message = 'This driver ({0}) does not have any types.conf definition' -f $Driver
+                Write-Verbose -Message $Message -Verbose
+                $TrayName   = $Record.Tray
+                $DuplexName = $Record.Duplex
+                $PaperName  = $Record.Paper 
+                $RxSetting  = $Record.RX
+                $MediaName  = $Record.Media
             }
             else {
-                $trayID     = $Record.Tray.Replace('!','')
-                $XPath      = '/OMPLUS/PTYPE[@name="{0}"]/TRAYS/TRAY[@id={1}]' -f $Driver, $trayID
-                $trayName   = $TypesConf.SelectNodes($XPath) | Select-Object -ExpandProperty InnerXML
-            }
-
-            Write-Verbose -Message 'Enumerate the Simplex/Duplex name'
-            if ($null -eq $Record.Duplex ) {
-                $DuplexName = 'none'
-            }
-            else {
-                switch ($Record.Duplex) {
-                    'Horizontal'    { $DuplexName = 'Short Edge'}
-                    'Vertical'      { $DuplexName = 'Long Edge'}
-                    default         { $DuplexName = $Record.Duplex}
+                Write-Verbose -Message 'Enumerate the Tray ID, strip the ! and get the text name'
+                if ($null -eq $Record.Tray ) {
+                    $trayName   = 'none'
                 }
-            }
-
-            Write-Verbose -Message 'Enumerate the Paper Size ID, strip the ! and get the text name'
-            if ([system.string]::IsNullOrEmpty($Record.Paper)) {
-                $PaperName  = ''
-            }
-            else {
-                $PaperID    = $Record.Paper.Replace('!','')
-                $XPath      = '/OMPLUS/PTYPE[@name="{0}"]/PSIZE/PAPER[@id={1}]' -f $Driver, $PaperID
-                $PaperName  = $TypesConf.SelectNodes($XPath) | Select-Object -ExpandProperty InnerXML
-            }
-
-            Write-Verbose -Message 'Enumerate the RX setting'
-            if ([system.string]::IsNullOrEmpty($Record.RX) ) {
-                $RxSetting  = ''
-            }
-            else {
-                $RxSetting = $Record.RX
-            }
-
-            Write-Verbose -Message 'Enumerate the Media Type ID, strip the ! and get the text name'
-            if ([system.string]::IsNullOrEmpty($Record.Media) ) {
-                $MediaName  = ''
-            }
-            else {
-                $MediaID    = $Record.Tray.Replace('!','')
-                $XPath      = '/OMPLUS/PTYPE[@name="{0}"]/MTYPE/Media[@id={1}]' -f $Driver, $MediaID
-                $MediaName  = $TypesConf.SelectNodes($XPath) | Select-Object -ExpandProperty InnerXML
+                else {
+                    $trayID     = $Record.Tray.Replace('!','')
+                    $XPath      = '/OMPLUS/PTYPE[@name="{0}"]/TRAYS/TRAY[@id={1}]' -f $Driver, $trayID
+                    $trayName   = $TypesConf.SelectNodes($XPath) | Select-Object -ExpandProperty InnerXML
+                }
+    
+                Write-Verbose -Message 'Enumerate the Simplex/Duplex name'
+                if ($null -eq $Record.Duplex ) {
+                    $DuplexName = 'none'
+                }
+                else {
+                    switch ($Record.Duplex) {
+                        'Horizontal'    { $DuplexName = 'Short Edge'}
+                        'Vertical'      { $DuplexName = 'Long Edge'}
+                        default         { $DuplexName = $Record.Duplex}
+                    }
+                }
+    
+                Write-Verbose -Message 'Enumerate the Paper Size ID, strip the ! and get the text name'
+                if ([system.string]::IsNullOrEmpty($Record.Paper)) {
+                    $PaperName  = ''
+                }
+                else {
+                    $PaperID    = $Record.Paper.Replace('!','')
+                    $XPath      = '/OMPLUS/PTYPE[@name="{0}"]/PSIZE/PAPER[@id={1}]' -f $Driver, $PaperID
+                    $PaperName  = $TypesConf.SelectNodes($XPath) | Select-Object -ExpandProperty InnerXML
+                }
+    
+                Write-Verbose -Message 'Enumerate the RX setting'
+                if ([system.string]::IsNullOrEmpty($Record.RX) ) {
+                    $RxSetting  = ''
+                }
+                else {
+                    $RxSetting = $Record.RX
+                }
+    
+                Write-Verbose -Message 'Enumerate the Media Type ID, strip the ! and get the text name'
+                if ([system.string]::IsNullOrEmpty($Record.Media) ) {
+                    $MediaName  = ''
+                }
+                else {
+                    $MediaID    = $Record.Tray.Replace('!','')
+                    $XPath      = '/OMPLUS/PTYPE[@name="{0}"]/MTYPE/Media[@id={1}]' -f $Driver, $MediaID
+                    $MediaName  = $TypesConf.SelectNodes($XPath) | Select-Object -ExpandProperty InnerXML
+                }
             }
 
             [PSCustomObject]@{

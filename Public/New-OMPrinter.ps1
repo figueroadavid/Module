@@ -340,14 +340,28 @@ Function New-OMPrinter {
     )
 
     Begin {
-        if ($Script:IsPrimaryMPS) {
-            Write-Verbose -Message 'On PrimaryMPS, proceeding'
-        }
-        else {
-            Write-Warning -Message 'Not on Primary MPS; unable to proceed'
-            return
-        }
 
+        $ServerRole = Get-OMServerRole 
+        switch ($ServerRole) {
+            'MPS' {
+                Write-Verbose -Message 'On PrimaryMPS, proceeding'
+            }
+            'TRN'  {
+                $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'receiveHosts'))
+                Write-Warning -Message 'On a transform server; printers should only be created on the primary MPS: {0}' -f $PrimaryMPS
+                return 
+            }
+            'BKP' {
+                $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'pingMaster'))
+                Write-Warning -Message 'On the secondary MPS server, printers should only be created on the primary MPS: {0}' -f $PrimaryMPS
+                return 
+            }
+            default {
+                Write-Warning -Message 'Not on an OMPlus server'
+                return 
+            }
+        }
+    
         if ($IsFullTesting) {
             $PSBoundParameters
         }
@@ -365,6 +379,7 @@ Function New-OMPrinter {
         }
 
         if ($Model) {
+            $ValidModels = Get-ChildItem -Path ([System.IO.Path]::combine($env:OMHOME, 'model')) | Select-Object -ExpandProperty BaseName
             if ($Model -in $ValidModels) {
                 $Message = 'Model "{0}" is a valid type' -f $Model
                 Write-Verbose -Message $Message

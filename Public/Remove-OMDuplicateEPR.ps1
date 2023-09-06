@@ -8,17 +8,30 @@ function Remove-OMPDuplicateEPR {
         [string]$FilePath
     )
 
-    if ($IsPrimaryMPS -or $FilePath) {
-        Write-Verbose -Message 'On Primary MPS, continuing'
-        if ($IsPrimaryMPS) {
-            $EPSMap = Get-OMEPSMap
-        }
-        else {
-            $EPSMap = Get-OMEPSMap -FilePath $FilePath
-        }
+    if ($FilePath) {
+        Write-Verbose -Message 'Using the file path provided'
     }
     else {
-        throw 'Not on PrimaryMPS'
+        $ServerRole = Get-OMServerRole 
+        switch ($ServerRole) {
+            'MPS' {
+                Write-Verbose -Message 'On PrimaryMPS, proceeding'
+            }
+            'TRN'  {
+                $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'receiveHosts'))
+                Write-Warning -Message 'On a transform server; the eps_map should only be updated on the primary MPS: {0}' -f $PrimaryMPS
+                return 
+            }
+            'BKP' {
+                $PrimaryMPS  = Get-Content -Path ([system.io.path]::combine($env:OMHome, 'system', 'pingMaster'))
+                Write-Warning -Message 'On a transform server; the eps_map cannot only be updated on the secondary MPS; the primary MPS is: {0}' -f $PrimaryMPS
+                return 
+            }
+            default {
+                Write-Warning -Message 'Not on an OMPlus server'
+                return 
+            }
+        }
     }
 
     $DupRecords = $EPSMap.EPSMap | Group-Object -Property 'EPR' | Where-Object Count -gt 1

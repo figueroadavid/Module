@@ -1,23 +1,19 @@
-function Disable-OMTransformServer {
-    $EPSPath            = [system.io.path]::Combine($env:omhome, 'system', 'eps_map') 
-    
-    $PingMasterPath     = [System.IO.Path]::Combine($env:home, 'system', 'pingMaster')
-    $PingMasterIsNone   = (Get-Content -Path $PingMasterPath ) -match '^none$'
+function Disable-OMPrimaryMPS {
+    $ServerRole = Get-OMServerRole
+    if ($ServerRole -notmatch 'MPS') {
+        throw 'The server is not the OMPlus primary Master Print Server'
+    }
 
-    if (Test-Path -Path $EPSPath -and $PingMasterIsNone) {
-        Write-Verbose -Message 'Currently on a primary master print server'
-        try {
-            Get-Service -Name ompSrv | 
-                Set-Service -StartupType Disabled -PassThru |
-                Stop-Service -Force
-            Write-Verbose -Message 'Successfully disabled the ompSrv service'
-        }
-        catch {
-            $_.Exception.Message
-        }
-        
+    try {
+        Get-Service -Name ompSrv -ErrorAction Stop| 
+            Set-Service -StartupType Disabled -PassThru -ErrorAction Stop|
+            Stop-Service -Force -ErrorAction Stop
+        Write-Verbose -Message 'Successfully disabled and stopped the ompServ service'    
     }
-    else {
-        Write-Warning -Message 'Not on primary master print server, not proceeding'
+    catch {
+        $_.Exception.Message
     }
+
+
+
 }

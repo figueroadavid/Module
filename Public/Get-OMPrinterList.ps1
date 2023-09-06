@@ -35,6 +35,14 @@ Function Get-OMPrinterList {
         [string]$Filter
     )
 
+    if ($env:OMHOME) {
+        Write-Verbose -Message 'On OMPlus server, continue'
+    }
+    else {
+        Write-Warning -Message 'Not on OMPlus server, unable to do anything'
+        return 
+    }
+
     $OMPrinterPath = [system.io.path]::Combine($env:OMHOME,'printers')
     if ($Filter) {
         Get-ChildItem -Path $OMPrinterPath -Directory -Filter $Filter | Select-Object -ExpandProperty BaseName

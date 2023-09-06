@@ -63,7 +63,7 @@ function Show-OMPlusHealthCheck {
             }
         }
 
-        if ( $null = Get-Module -Name OMPlus) {
+        if ( $null -eq (Get-Module -Name OMPlus)) {
             try { 
                 Write-Verbose -Message 'Trying to load OMPlus module'
                 Import-Module -Name OMPlus -ErrorAction Stop

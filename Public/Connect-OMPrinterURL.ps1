@@ -8,6 +8,8 @@ Function Connect-OMPrinterURL {
             PS C:\> Connect-OMPrinterURL -PrinterName Printer1,Printer2
 
             Launches the web page for Printer1, waits for 500ms, and launches the web page for Printer2
+        .EXAMPLE 
+            PS C:\> Connect-OMPrinterURL -PrinterName PRINTER01 -UseThisBrowser Chrome
         .PARAMETER PrinterName
             This is the list of printers to open web pages from
         .PARAMETER DelayBetweenPrintersInMS
@@ -16,6 +18,13 @@ Function Connect-OMPrinterURL {
         .PARAMETER SafetyThreshold
             This is the maximum number of pages the function will attempt to open.  This is a safety measure
             to prevent the browser and the system from being overwhelmed with requests to open web pages.
+        .PARAMETER UseThisBrowser
+            Lets the user select the browser to use to connect.  It will use the normal default browser
+            if nothing is selected. 
+            Currently, it has support for IE, Edge, Chrome, and FireFox.
+            Specifying the browser will cause it to be launched in its privacy mode.  
+            Using the 'default' setting will not trigger the privacy mode.
+
         .INPUTS
             [string]
             [int]
@@ -48,15 +57,67 @@ param(
         [int]$DelayBetweenPrintersinMS = 500,
 
         [parameter(ValueFromPipelineByPropertyName)]
-        [int]$SafetyThreshold = 10
+        [int]$SafetyThreshold = 10,
+
+        [parameter(ValueFromPipelineByPropertyName)]
+        [ValidateSet('IE', 'MSEdge', 'Chrome', 'FireFox', 'default')]
+        [string]$UseThisBrowser = 'MSEdge'
 
     )
 
     Begin {
+        $ServerRole = Get-OMServerRole
+        if ($ServerRole -notmatch 'MPS|BKP') {
+            throw 'The server is not an OMPlus Master Print Server'
+        }
+
         if ($PrinterName.Count -gt $SafetyThreshold) {
             $Message = 'Only the first {0} pages will be launched; this is a measure to prevent the system from being overwhelmed' -f $SafetyThreshold
             Write-Warning -Message $Message
         }
+
+        Write-Verbose 'Confirming if the selected browser is installed'
+        switch ($UseThisBrowser) {
+            'IE' {
+                $ExeToUse = 'iexplore.exe -private'
+            }
+            'MSEdge' {
+                if ( (Test-Path -Path HKLM:\SOFTWARE\Microsoft\Edge) -or 
+                        (Test-Path -Path HKLM:\SOFTWARE\Wow6432Node\Microsoft\Edge)
+                ) {
+                    $ExeToUse       = 'msedge.exe'
+                    $ArgumentList   = ' -inPrivate {0}'
+                }
+                else {
+                    Throw 'Edge does not appear to be installed, please try a different browser'
+                }
+            }
+            'Chrome' {
+                if ( (Test-Path -Path HKLM:\SOFTWARE\Google\Chrome) -or 
+                        (Test-Path -Path HKLM:\SOFTWARE\Wow6432Node\Google\Chrome)
+                ) {
+                    $ExeToUse       = 'chrome.exe'
+                    $ArgumentList   = ' -incognito {0}'
+                }
+                else {
+                    Throw 'Chrome does not appear to be installed, please try a different browser'
+                }
+            }
+            'FireFox' {
+                if ( (Test-Path -Path HKLM:\SOFTWARE\Mozilla\FireFox) -or 
+                        (Test-Path -Path HKLM:\SOFTWARE\Wow6432Node\Mozilla\Firefox) 
+                ) {
+                    $ExeToUse       = 'firefox.exe'
+                    $ArgumentList   = '-private-window {0}'
+                }
+            }
+            default {
+                Write-Verbose -Message 'No browser selected - using the registered default browser'
+                $ExeToUse       = ''
+                $ArgumentList   = '{0}'
+            }
+        }
+
     }
     process {
         $CurrentCounter = 0
@@ -76,8 +137,15 @@ param(
                     continue
                 }
                 else {
-                    Start-Process -FilePath $thisConfig.URL
-                    Start-Sleep -Milliseconds $DelayBetweenPrintersinMS
+                    $ArgumentList = $ArgumentList -f $thisConfig.URL
+
+                    if ($UseThisBrowser -eq 'default') {
+                        Start-Process -FilePath $ArgumentList    
+                    } 
+                    else {
+                        Start-Process -FilePath  $ExeToUse -ArgumentList $ArgumentList 
+                        Start-Sleep -Milliseconds $DelayBetweenPrintersinMS
+                    }
                 }
             }
             catch {
